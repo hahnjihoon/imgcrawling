@@ -1,11 +1,16 @@
 url = http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079
 outdir = C:/Users/Rainbow Brain/Desktop/imgdir
 
-python main.py auction "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079" "C:/Users/Rainbow Brain/Desktop/imgdir"
+----------------------------------------------------------------------------------------------------------------------------------------------------
 
-python main.py elevenst "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079" "C:/Users/Rainbow Brain/Desktop/imgdir"
-python main.py ELEVENst "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079" "C:/Users/Rainbow Brain/Desktop/imgdir"
+python main.py auction "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079" "C:/Users/Rainbow Brain/Desktop/auctionImgaes"
 
-python main.py gmarket "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079" "C:/Users/Rainbow Brain/Desktop/imgdir"
------------------------------------------------------------------------------------------------------------------------------------
+
+python main.py ELEVENst "https://www.11st.co.kr/products/5711265031?&trTypeCd=PW24&trCtgrNo=585021" "C:/Users/Rainbow Brain/Desktop/elevenImages"
+python main.py ELEVENST "https://www.11st.co.kr/products/5395841477?&trTypeCd=PW24&trCtgrNo=585021" "C:/Users/Rainbow Brain/Desktop/elevenImages"
+
+
+python main.py gmarket "https://item.gmarket.co.kr/Item?goodscode=3499614468&buyboxtype=ad" "C:/Users/Rainbow Brain/Desktop/gmarketImages"
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
 

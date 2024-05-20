@@ -10,19 +10,38 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 def auction(url, output_dir):
+    print('auction fine :: ', url)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # url = "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079"
     options = Options()
     options.add_argument('--headless')
     driver = webdriver.Chrome(options=options)
     driver.get(url)
 
-    detail_button = WebDriverWait(driver, 1).until(EC.element_to_be_clickable((By.CSS_SELECTOR, '.js-toggle-button')))
+    # 제목 추출
+    title_element = WebDriverWait(driver, 3).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'h1.itemtit'))
+    )
+    title = title_element.text.strip()
+    print('Title:', title)
+
+    first_slash_index = title.find('/')
+    if first_slash_index != -1:
+        # 첫 번째 슬래시 이전의 문자열 추출
+        title = title[:first_slash_index]
+
+    # 제목 폴더 생성
+    title_dir = os.path.join(output_dir, title)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+
+    detail_button = WebDriverWait(driver, 3).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, '.js-toggle-button'))
+    )
     detail_button.click()
 
-    WebDriverWait(driver, 1).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
 
     iframe_element = driver.find_element(By.ID, "hIfrmExplainView")
     driver.switch_to.frame(iframe_element)  # iframe 내부로 전환
@@ -37,23 +56,12 @@ def auction(url, output_dir):
     print('get image_urls', image_urls)
 
     for idx, image_url in enumerate(image_urls):
-        img_data = requests.get(image_url).content
-        with open(f'{output_dir}/image{idx}.jpg', 'wb') as f:
-            f.write(img_data)
+        try:
+            img_data = requests.get(image_url).content
+            with open(f'{title_dir}/image{idx}.jpg', 'wb') as f:
+                f.write(img_data)
+        except Exception as e:
+            print(f"Error saving image {image_url}: {e}")
 
-    image_list = [f'{output_dir}/image{idx}.jpg' for idx in range(len(image_urls))]
-
-    # 이미지병합하는 부분
-    # output_path = f"{output_dir}/merged_image.png"
-    # images = [Image.open(i) for i in image_list]
-
-    # widths, heights = zip(*(i.size for i in images))
-    # max_width = max(widths)
-    # total_height = sum(heights)
-    # combined_image = Image.new('RGB', (max_width, total_height), color='white')
-    # y_offset = 0
-    # for im in images:
-    #     combined_image.paste(im, (0, y_offset))
-    #     y_offset += im.size[1]  # 0가로 1세로
-    # combined_image.save(output_path, ptimize=True, quality=10, compress_level=9)
+    print('auction 완료중')
     driver.quit()
