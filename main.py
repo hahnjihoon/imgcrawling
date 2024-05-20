@@ -1,5 +1,8 @@
 import sys
-from auction import auction
+from image_down.auction import auction
+from image_down.elevenst import elevenst
+from image_down.gmarket import gmarket
+
 
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
@@ -16,7 +19,12 @@ if __name__ == '__main__':
     url = sys.argv[2]
     output_dir = sys.argv[3]
 
+    commerce_code = commerce_code.lower()  # 무조건소문자
     if commerce_code == 'auction':
         auction(url, output_dir)
+    elif commerce_code == 'elevenst':
+        elevenst(url, output_dir)
+    elif commerce_code == 'gmarket':
+        gmarket(url, output_dir)
     else:
         print("없는 커머스 코드")

@@ -4,6 +4,7 @@ import imutils
 import cv2
 import numpy as np
 
+# 이미지 비교 테스트용 -> comparing.py로 확정
 def resize_image(imageA, imageB):
     if imageA.shape != imageB.shape:
         # 이미지 B를 이미지 A의 크기에 맞게 조정

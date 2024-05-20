@@ -34,7 +34,7 @@ def auction(url, output_dir):
     for image_element in image_elements:
         image_urls.append(image_element.attributes['src'])
 
-    print('1111111111111111111111111', image_urls)
+    print('get image_urls', image_urls)
 
     for idx, image_url in enumerate(image_urls):
         img_data = requests.get(image_url).content
@@ -43,20 +43,17 @@ def auction(url, output_dir):
 
     image_list = [f'{output_dir}/image{idx}.jpg' for idx in range(len(image_urls))]
 
-    print('22222222222222222222222', image_list)
+    # 이미지병합하는 부분
+    # output_path = f"{output_dir}/merged_image.png"
+    # images = [Image.open(i) for i in image_list]
 
-    output_path = f"{output_dir}/merged_image.png"
-    images = [Image.open(i) for i in image_list]
-
-    print('33333333333', images)
-
-    widths, heights = zip(*(i.size for i in images))
-    max_width = max(widths)
-    total_height = sum(heights)
-    combined_image = Image.new('RGB', (max_width, total_height), color='white')
-    y_offset = 0
-    for im in images:
-        combined_image.paste(im, (0, y_offset))
-        y_offset += im.size[1]  # 0가로 1세로
-    combined_image.save(output_path, ptimize=True, quality=10, compress_level=9)
+    # widths, heights = zip(*(i.size for i in images))
+    # max_width = max(widths)
+    # total_height = sum(heights)
+    # combined_image = Image.new('RGB', (max_width, total_height), color='white')
+    # y_offset = 0
+    # for im in images:
+    #     combined_image.paste(im, (0, y_offset))
+    #     y_offset += im.size[1]  # 0가로 1세로
+    # combined_image.save(output_path, ptimize=True, quality=10, compress_level=9)
     driver.quit()

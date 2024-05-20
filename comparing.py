@@ -74,6 +74,7 @@ def compare(image1_path, image2_path):
     return similarity
 
 
+# 현재안씀
 def compare_images(image1_path, image2_path): #컨투어로비교시 0이면 같은것 숫자가 높아질수록 다른것
     # 이미지 파일을 그레이 스케일로 읽어옴
     image1 = cv2.imread(image1_path, cv2.IMREAD_GRAYSCALE)

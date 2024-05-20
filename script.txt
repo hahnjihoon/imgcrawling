@@ -3,5 +3,9 @@ outdir = C:/Users/Rainbow Brain/Desktop/imgdir
 
 python main.py auction "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079" "C:/Users/Rainbow Brain/Desktop/imgdir"
 
+python main.py elevenst "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079" "C:/Users/Rainbow Brain/Desktop/imgdir"
+python main.py ELEVENst "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079" "C:/Users/Rainbow Brain/Desktop/imgdir"
+
+python main.py gmarket "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079" "C:/Users/Rainbow Brain/Desktop/imgdir"
 -----------------------------------------------------------------------------------------------------------------------------------
 
