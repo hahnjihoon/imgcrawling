@@ -7,10 +7,19 @@ python main.py auction "http://itempage3.auction.co.kr/DetailView.aspx?itemno=C4
 
 
 python main.py ELEVENst "https://www.11st.co.kr/products/5711265031?&trTypeCd=PW24&trCtgrNo=585021" "C:/Users/Rainbow Brain/Desktop/elevenImages"
-python main.py ELEVENST "https://www.11st.co.kr/products/5395841477?&trTypeCd=PW24&trCtgrNo=585021" "C:/Users/Rainbow Brain/Desktop/elevenImages"
+python main.py elevenst "https://www.11st.co.kr/products/5395841477?&trTypeCd=PW24&trCtgrNo=585021" "C:/Users/Rainbow Brain/Desktop/elevenImages"
 
 
 python main.py gmarket "https://item.gmarket.co.kr/Item?goodscode=3499614468&buyboxtype=ad" "C:/Users/Rainbow Brain/Desktop/gmarketImages"
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------
 
+#기존쿠팡
+python -m scrap COUPANG price "C:\Users\Rainbow Brain\Desktop\PEB04_Coupang_Result_DB.xlsx"
+
+-----------------------------0624----------------------------------------------------------------------------------------------------------------------------------------------------
+#onefile 실행어
+python imgclusterandcompare.py elevenst "https://www.11st.co.kr/products/5395841477?&trTypeCd=PW24&trCtgrNo=585021" "C:/Users/Rainbow Brain/Desktop/elevenImages"
+
+python onefile/imgclusterandcompare.py elevenst "https://www.11st.co.kr/products/5395841477?&trTypeCd=PW24&trCtgrNo=585021" "C:/Users/Rainbow Brain/Desktop/elevenImages"
+--이거 나중에 메인위치에맞게 바꿔야됨(onefile/imgclusterandcompare.py)

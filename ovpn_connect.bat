@@ -1,0 +1,1 @@
+"C:\Program Files\OpenVPN\bin\openvpn-gui.exe" --command connect vpnbook-us1-tcp443.ovpn
