@@ -36,6 +36,7 @@ def auction(url, output_dir):
     if not os.path.exists(title_dir):
         os.makedirs(title_dir)
 
+
     # 옥션에만있는 상세보기버튼클릭
     detail_button = WebDriverWait(driver, 3).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, '.js-toggle-button'))
@@ -66,5 +67,7 @@ def auction(url, output_dir):
 
     print('auction 완료중')
     driver.quit()
+
+
 
     # 비교로직(원본이미지경로, 비교할이미지경로) 어떻게 실행할것인지?(다음이어서할지, rpa에서 로직돌릴지)
