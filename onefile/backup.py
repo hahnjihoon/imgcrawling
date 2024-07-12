@@ -1,8 +1,8 @@
 import os
+import re
 from io import BytesIO
 import requests
 from PIL import Image
-from bs4 import BeautifulSoup
 from selectolax.parser import HTMLParser
 from selenium import webdriver
 from selenium.common import TimeoutException, NoSuchElementException
@@ -69,6 +69,10 @@ def save_images(image_urls, title_dir):
             # 예외가 발생할 경우 오류 메시지를 출력합니다.
             print(f"Error saving image {image_url}: {e}")
 
+def sanitize_title(title):
+    # Windows 파일명에 사용할 수 없는 문자를 제거합니다.
+    return re.sub(r'[\/:*?"<>|]', '', title)
+
 
 def auction(url, output_dir):
     print(f"auction: {url}, {output_dir}")
@@ -80,6 +84,23 @@ def auction(url, output_dir):
     options.add_argument('--headless')
     driver = webdriver.Chrome(options=options)
     driver.get(url)
+
+    # 제목 추출
+    title_element = WebDriverWait(driver, 3).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'h1.itemtit'))
+    )
+    title = title_element.text.strip()
+    print('Title:', title)
+
+    first_slash_index = title.find('/')
+    if first_slash_index != -1:
+        # 첫 번째 슬래시 이전의 문자열 추출
+        title = title[:first_slash_index]
+
+    # 제목 폴더 생성
+    title_dir = os.path.join(output_dir, title)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
 
     # 옥션에만있는 상세보기버튼클릭
     detail_button = WebDriverWait(driver, 3).until(
@@ -105,9 +126,6 @@ def auction(url, output_dir):
 
     print('get image_urls', image_urls)
 
-    title_dir = os.path.join(output_dir)
-    if not os.path.exists(title_dir):
-        os.makedirs(title_dir)
     save_images(image_urls, title_dir)
 
     print('auction 완료중')
@@ -125,6 +143,23 @@ def elevenst(url, output_dir):
     driver.get(url)
 
     # WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    # h1 태그에서 제목 추출
+    title_element = WebDriverWait(driver, 3).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'h1.title'))
+    )
+    title = title_element.text.strip()
+    print('Title:', title)
+
+    first_slash_index = title.find('/')
+    if first_slash_index != -1:
+        # 첫 번째 슬래시 이전의 문자열 추출
+        title = title[:first_slash_index]
+
+    # 제목 폴더 생성
+    title_dir = os.path.join(output_dir, title)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
 
     # 실제 iframe안에 상태 이미지가 있으므로 iframe으로 전환
     # iframe_element = WebDriverWait(driver, 3).until(
@@ -147,9 +182,6 @@ def elevenst(url, output_dir):
     print('get image_urls', image_urls)
 
     # 이미지 저장
-    title_dir = os.path.join(output_dir)
-    if not os.path.exists(title_dir):
-        os.makedirs(title_dir)
     save_images(image_urls, title_dir)
 
     print('eleven 완료중')
@@ -166,6 +198,30 @@ def gmarket(url, output_dir):
     driver = webdriver.Chrome(options=options)
     driver.get(url)
 
+    # WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    # h1 태그에서 제목 추출
+    title_element = WebDriverWait(driver, 3).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'h1.itemtit'))
+    )
+    title = title_element.text.strip()
+    print('Title:', title)
+
+    first_slash_index = title.find('/')
+    if first_slash_index != -1:
+        # 첫 번째 슬래시 이전의 문자열 추출
+        title = title[:first_slash_index]
+
+    # 제목 폴더 생성
+    title_dir = os.path.join(output_dir, title)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+
+    # 실제 iframe안에 상태 이미지가 있으므로 iframe으로 전환
+    # iframe_element = WebDriverWait(driver, 3).until(
+    #     EC.presence_of_element_located((By.ID, "detail1"))
+    # )
+    # driver.switch_to.frame(iframe_element)
     gmarket_class = ['.ddd', 'test', 'detail1']
     find_element_id(driver, gmarket_class)
 
@@ -182,9 +238,6 @@ def gmarket(url, output_dir):
     print('get image_urls', image_urls)
 
     # 이미지 저장
-    title_dir = os.path.join(output_dir)
-    if not os.path.exists(title_dir):
-        os.makedirs(title_dir)
     save_images(image_urls, title_dir)
 
     print('gmarket 완료중')
@@ -233,6 +286,25 @@ def naver_brand(url, output_dir):
     # for cookie in cookies:
     #     print(cookie)
 
+    try:
+        title_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'h3._22kNQuEXmb._copyable'))  # 상품제목 태그클래스명
+        )
+        title = title_element.text.strip()
+    except TimeoutException:
+        print("Title element not found, trying another selector")
+        title_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'h2._1Y6hi'))  # 이런게 없긴함
+        )
+        title = title_element.text.strip()
+
+    print('Title:', title)
+
+    title = sanitize_title(title)
+    title_dir = os.path.join(output_dir, title)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+
     print('버튼클릭전') #화면자체를 켜서 눌러야됨 코드상으로는 api를 호출해서 검증하는듯 그래서 안됨
     button_xpath = '//*[@id="INTRODUCE"]/div/div[5]/button'
     button_element = WebDriverWait(driver, 10).until(
@@ -272,9 +344,6 @@ def naver_brand(url, output_dir):
     print('get image_urls', image_urls)
 
     # 이미지 저장
-    title_dir = os.path.join(output_dir)
-    if not os.path.exists(title_dir):
-        os.makedirs(title_dir)
     save_images(image_urls, title_dir)
 
     print('naver 완료중')
@@ -291,43 +360,31 @@ def naver_search_shopping(url, output_dir):
     options.add_argument('--disable-webgl')
     driver = webdriver.Chrome(options=options)
     driver.get(url)
-    # title_div = WebDriverWait(driver, 10).until(
-    #     EC.presence_of_element_located((By.CSS_SELECTOR, 'div.top_summary_title__ViyrM'))
-    # )
-    #
-    # # title_div 내부의 h2 태그를 찾음
-    # h2_element = title_div.find_element(By.TAG_NAME, 'h2')
-    #
-    # # h2 요소의 텍스트 추출
-    # h2_text = h2_element.text
-    # print(h2_text)
+    title_div = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'div.top_summary_title__ViyrM'))
+    )
 
-    # 막힌듯
+    # title_div 내부의 h2 태그를 찾음
+    h2_element = title_div.find_element(By.TAG_NAME, 'h2')
+
+    # h2 요소의 텍스트 추출
+    h2_text = h2_element.text
+    print(h2_text)
+
     WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, '#container'))
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'body'))
     )
     page_source = driver.page_source
     root = HTMLParser(page_source)
-    print('root:: ', root.text())
-
     image_urls = []
     image_elements = root.css(
-        'div.additionalImages_product_img__ALP0s img')
-    print('ddddddddddddddddddddddddddddd', image_elements)
-
+        '#section_spec > div.additionalImages_export_atc__XVRNd > div img')
     for image_element in image_elements:
         if 'src' in image_element.attributes:
-            image_urls.append(image_element.attributes['src'])
-    print('get image_urls', image_urls)
+            src = image_element.attributes['src']
+            image_urls.append(src)
 
-    # 이미지 저장
-    title_dir = os.path.join(output_dir)
-    if not os.path.exists(title_dir):
-        os.makedirs(title_dir)
-    save_images(image_urls, title_dir)
 
-    print('naver_search 완료중')
-    driver.quit()
 
 def ssg(url, output_dir):
     print('ssg시작')
@@ -339,6 +396,23 @@ def ssg(url, output_dir):
     options.add_argument('--headless')
     driver = webdriver.Chrome(options=options)
     driver.get(url)
+
+    # 제목 추출
+    title_element = WebDriverWait(driver, 3).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'span.cdtl_info_tit_txt'))
+    )
+    title = title_element.text.strip()
+    print('Title:', title)
+
+    first_slash_index = title.find('/')
+    if first_slash_index != -1:
+        # 첫 번째 슬래시 이전의 문자열 추출
+        title = title[:first_slash_index]
+
+    # 제목 폴더 생성
+    title_dir = os.path.join(output_dir, title)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
 
     # ssg에만있는 상세보기버튼클릭
     detail_button = WebDriverWait(driver, 3).until(
@@ -364,9 +438,6 @@ def ssg(url, output_dir):
     print('get image_urls', image_urls)
 
     # 이미지 저장
-    title_dir = os.path.join(output_dir)
-    if not os.path.exists(title_dir):
-        os.makedirs(title_dir)
     save_images(image_urls, title_dir)
 
     print('ssg 완료중')
@@ -383,6 +454,23 @@ def cjthemarket(url, output_dir):
     driver = webdriver.Chrome(options=options)
     driver.get(url)
 
+    # 제목 추출
+    title_element = WebDriverWait(driver, 3).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'h3.product-name'))
+    )
+    title = title_element.text.strip()
+    print('Title:', title)
+
+    first_slash_index = title.find('/')
+    if first_slash_index != -1:
+        # 첫 번째 슬래시 이전의 문자열 추출
+        title = title[:first_slash_index]
+
+    # 제목 폴더 생성
+    title_dir = os.path.join(output_dir, title)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+
     # cj the market은 상세보기버튼없이 펼쳐져있음
     # WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, '.product-detail')))
     # # print('detail :: ', detail)
@@ -392,7 +480,6 @@ def cjthemarket(url, output_dir):
 
     page_source = driver.page_source
     root = HTMLParser(page_source)
-    print(root.text())
 
     image_urls = []
 
@@ -409,60 +496,21 @@ def cjthemarket(url, output_dir):
 
     print('get image_urls', image_urls)
 
-    title_dir = os.path.join(output_dir)
-    if not os.path.exists(title_dir):
-        os.makedirs(title_dir)
     save_images(image_urls, title_dir)
 
     print('cj the market 완료중')
     driver.quit()
 
-def hmall(url, output_dir):
-    print(f"hmall: {url}, {output_dir}")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
 
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    driver = webdriver.Chrome(options=options)
-    driver.get(url)
-
-    hmall_class = ['.view-content']
-    find_element_class(driver, hmall_class)
-
-    #아니 hmall은 파싱하면 html이 안나오고 이상한게 나오도록 한듯
-    page_source = driver.page_source
-    root = HTMLParser(page_source)
-    # print(root.text())
-
-    image_urls = []
-    image_elements = root.css(
-        '.view-content img')
-
-    for image_element in image_elements:
-        image_urls.append(image_element.attributes['src'])
-
-    print('get image_urls', image_urls)
-
-    # 이미지 저장
-    title_dir = os.path.join(output_dir)
-    if not os.path.exists(title_dir):
-        os.makedirs(title_dir)
-    save_images(image_urls, title_dir)
-
-    print('ssg 완료중')
-    driver.quit()
-
-
-def image_crawling(info):
-    if len(info) != 3:
+def image_crawling(paramlist):
+    if len(paramlist) != 3:
         print("Error: 필수 파라미터를 확인하세요")
         return
 
     # AA에서 파라미터 리스트로넘겨줌
-    commerce_code = info[0]  # 첫 번째 파라미터: 커머스코드
-    img_url = info[1]  # 두 번째 파라미터: 이미지url
-    save_path = info[2]  # 세 번째 파라미터: 저장장소
+    commerce_code = paramlist[0]  # 첫 번째 파라미터: 커머스코드
+    img_url = paramlist[1]  # 두 번째 파라미터: 이미지url
+    save_path = paramlist[2]  # 세 번째 파라미터: 저장장소
 
     print(f'커머스코드: {commerce_code}')
     print(f'이미지url: {img_url}')
@@ -487,9 +535,6 @@ def image_crawling(info):
 
     if commerce_code == 'cjthemarket':
         cjthemarket(img_url, save_path)
-
-    if commerce_code == 'hmall':
-        hmall(img_url, save_path)
 
 
 # 로컬에서 실행test
@@ -521,14 +566,10 @@ if __name__ == "__main__":
     # c = "C:/Users/Rainbow Brain/Desktop/save"
     ##########################################
     # 네이버는 뭘써야되는거냐 brand / search.shopping
-    # a = 'naver'
-    # # b = 'https://brand.naver.com/cheiljedang/products/6042668419' #햇반 됨
-    # b = 'https://search.shopping.naver.com/catalog/5679111748' #다시다 안됨
-    # c = "C:/Users/Rainbow Brain/Desktop/save"
-    ##########################################
-    a = 'HmaLL'
-    b = 'https://www.hmall.com/pd/pda/itemPtc?slitmCd=2212437659&searchTerm=cj'
-    c = "C:/Users/Rainbow Brain/Desktop/hmallsave"
+    a = 'naver'
+    # b = 'https://brand.naver.com/cheiljedang/products/6042668419' #햇반 됨
+    b = 'https://search.shopping.naver.com/catalog/5679111748' #다시다 안됨
+    c = "C:/Users/Rainbow Brain/Desktop/save"
 
     param = [a, b, c]
 
