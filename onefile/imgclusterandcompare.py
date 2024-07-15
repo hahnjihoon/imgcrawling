@@ -1,8 +1,8 @@
+import base64
 import os
 from io import BytesIO
 import requests
 from PIL import Image
-from bs4 import BeautifulSoup
 from selectolax.parser import HTMLParser
 from selenium import webdriver
 from selenium.common import TimeoutException, NoSuchElementException
@@ -55,7 +55,7 @@ def save_images(image_urls, title_dir):
 
             # 이미지가 팔레트 모드(P)인지 확인하고, 그렇다면 RGB 모드로 변환합니다.
             # 팔레트모드가 gif이고 이건 보통 커머스에서올리는데 이거그냥 제끼고 다운받으면될듯
-            if image.mode == 'P':
+            if image.mode == 'P'or image.mode == 'RGBA':
                 image = image.convert('RGB')
 
             # 이미지 저장 경로를 생성합니다.
@@ -141,8 +141,7 @@ def elevenst(url, output_dir):
     image_urls = []
     image_elements = root.css('img')
     for image_element in image_elements:
-        if 'src' in image_element.attributes:
-            image_urls.append(image_element.attributes['src'])
+        image_urls.append(image_element.attributes['src'])
 
     print('get image_urls', image_urls)
 
@@ -277,7 +276,7 @@ def naver_brand(url, output_dir):
         os.makedirs(title_dir)
     save_images(image_urls, title_dir)
 
-    print('naver 완료중')
+    print('naver-brand 완료중')
     driver.quit()
 
 def naver_search_shopping(url, output_dir):
@@ -326,7 +325,7 @@ def naver_search_shopping(url, output_dir):
         os.makedirs(title_dir)
     save_images(image_urls, title_dir)
 
-    print('naver_search 완료중')
+    print('naver-search 완료중')
     driver.quit()
 
 def ssg(url, output_dir):
@@ -450,9 +449,437 @@ def hmall(url, output_dir):
         os.makedirs(title_dir)
     save_images(image_urls, title_dir)
 
-    print('ssg 완료중')
+    print('hmall 완료중')
     driver.quit()
 
+def lotteon(url, output_dir):
+    print(f"lotteon: {url}, {output_dir}")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    # lotteon에만있는 상세보기버튼클릭
+    detail_button = WebDriverWait(driver, 3).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, '.hasIcon.strokeRed.more.sizeMedium.alignRight'))
+    )
+    detail_button.click()
+
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    # 실제 iframe안에 상태 이미지가 있으므로
+    # iframe_element = driver.find_element(By.ID, "_ifr_html")
+    # driver.switch_to.frame(iframe_element)  # iframe 내부로 전환
+    lotteon_class = ['m2-prd-frame'] #아이디일땐 그냥 아이디값만
+    find_element_id(driver, lotteon_class)
+    page_source = driver.page_source
+    root = HTMLParser(page_source)
+
+    image_urls = []
+    image_elements = root.css('img')
+    for image_element in image_elements:
+        image_urls.append(image_element.attributes['src'])
+
+    print('get image_urls', image_urls)
+
+    # 이미지 저장
+    title_dir = os.path.join(output_dir)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+    save_images(image_urls, title_dir)
+
+    print('lotteon 완료중')
+    driver.quit()
+
+def cjonstyle(url, output_dir):
+    print(f"cjonstyle: {url}, {output_dir}")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    cjonstyle_class = ['#_itemExplainAreaInfoIframe > iframe']
+    resutl = find_element_class(driver, cjonstyle_class)
+    driver.switch_to.frame(resutl)
+    page_source = driver.page_source
+    root = HTMLParser(page_source)
+
+    image_urls = []
+    image_elements = root.css('img')
+    for image_element in image_elements:
+        if 'src' in image_element.attributes:
+            src = image_element.attributes['src']
+            if src.startswith('//'):
+                image_url = 'http:' + src
+            elif not src.startswith('http'):
+                image_url = 'http://' + src
+            else:
+                image_url = src
+            image_urls.append(image_url)
+
+    print('get image_urls', image_urls)
+    # 현커머스는 css로 찾고 그걸 iframe으로 변환시키고 가져온 src를 가공해야 다운가능
+
+    # 이미지 저장
+    title_dir = os.path.join(output_dir)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+    save_images(image_urls, title_dir)
+
+    print('cjonstyle 완료중')
+    driver.quit()
+
+
+def emartmall(url, output_dir):
+    print(f"emartmall: {url}, {output_dir}")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    # emartmall 상세보기버튼클릭
+    detail_button = WebDriverWait(driver, 3).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, '.btn_collapse.ctrl_collapse'))
+    )
+    detail_button.click()
+
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    emartmall_class = ['_ifr_html'] #아이디일땐 그냥 아이디값만
+    find_element_id(driver, emartmall_class)
+    page_source = driver.page_source
+    root = HTMLParser(page_source)
+
+    image_urls = []
+    image_elements = root.css('img')
+    for image_element in image_elements:
+        image_urls.append(image_element.attributes['src'])
+
+    print('get image_urls', image_urls)
+
+    # 이미지 저장
+    title_dir = os.path.join(output_dir)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+    save_images(image_urls, title_dir)
+
+    print('emartmall 완료중')
+    driver.quit()
+
+def kakaostore(url, output_dir):
+    ################################################################################
+    #버튼 클릭안하고 실행하면 메인이미지랑 하단이미지 포함되고(버튼클릭전 이미 하나의div안에 있는듯)
+    #버튼 클릭하고 제대로 실행하면 대상컴퓨터에서 연결을 거부했다고 나옴
+    ################################################################################
+    print(f"kakaostore: {url}, {output_dir}")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    # kakaostore 상세보기버튼클릭
+    # try:
+    #     # 클래스명이 'btn_view'인 <a> 태그를 클릭하기 위해 대기
+    #     detail_link = WebDriverWait(driver, 3).until(
+    #         EC.element_to_be_clickable((By.CSS_SELECTOR, 'a.btn_view'))
+    #     )
+    #     detail_link.click()
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
+    # finally:
+    #     driver.quit()
+
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    #아니 상세부분 div 클래스명만 입력했는데 왜 메인이미지랑 하단에 쓰레기이미지까지 딸려오냐고
+    kakaostore_class = ['.area_detail.ng-star-inserted'] #아이디일땐 그냥 아이디값만
+    # kakaostore_class = ['.contents.info_txt'] #버튼클릭할때 사용해야됨 아닐때는 위에것 사용
+    # 대신 모든이미지 다나옴
+
+    find_element_class(driver, kakaostore_class)
+    page_source = driver.page_source
+    root = HTMLParser(page_source)
+    print(root)
+
+    image_urls = []
+    image_elements = root.css('img')
+    for image_element in image_elements:
+        image_urls.append(image_element.attributes['src'])
+
+    print('get image_urls', image_urls)
+
+    # 이미지 저장
+    title_dir = os.path.join(output_dir)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+    save_images(image_urls, title_dir)
+
+    print('kakaostore 완료중')
+    driver.quit()
+
+
+def oliveyoung(url, output_dir):
+    print(f"oliveyoung: {url}, {output_dir}")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    page_source = driver.page_source
+
+    # 페이지 소스의 일부분 출력
+    # print(page_source)
+
+    # 주석으로 시작과 끝 찾기
+    # 여기선 주석사용하니까 에러나면 주석 어디있나 찾아서 교체하면됨
+    start_comment = "<!--상품상세시작-->"
+    end_comment = "<!--상품상세시작 끝1-->"
+
+    start_idx = page_source.find(start_comment)
+    end_idx = page_source.find(end_comment)
+
+    if start_idx == -1 or end_idx == -1:
+        print("주석을 찾을 수 없습니다.")
+        return
+
+    # 주석 사이의 HTML 추출
+    detail_html = page_source[start_idx + len(start_comment):end_idx]
+    detail_parser = HTMLParser(detail_html)
+
+    # 이미지 URL 추출
+    image_urls = []
+    image_elements = detail_parser.css('img')
+    for image_element in image_elements:
+        if 'src' in image_element.attributes:
+            src = image_element.attributes['src']
+            if not src.startswith('h'):
+                data_src = image_element.attributes['data-src']
+                image_urls.append(data_src)
+            else:
+                image_urls.append(src)
+
+    print('get image_urls', image_urls)
+
+    # 이미지 저장
+    title_dir = os.path.join(output_dir)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+    save_images(image_urls, title_dir)
+
+    print('oliveyoung 완료중')
+    driver.quit()
+
+
+def lotteimall(url, output_dir):
+    ##########################################################
+    # 중요한 상세이미지가 base64로 넘어오는데 이게 전체데이터가 아니라 앞대가리만 있는
+    # 제시용 데이터라 디코딩시에 귀퉁이 작은이미지만 복원됨
+    # rpa사용해야할듯
+    print(f"lotteimall: {url}, {output_dir}")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    page_source = driver.page_source
+    # print(page_source)
+    start_comment = "<!--//191115 해외직배송 안내사항 -->"
+    end_comment = "<!-- The cache server responded. -->"
+
+    start_idx = page_source.find(start_comment)
+    end_idx = page_source.find(end_comment)
+
+    if start_idx == -1 or end_idx == -1:
+        print("주석을 찾을 수 없습니다.")
+        return
+
+    detail_html = page_source[start_idx + len(start_comment):end_idx]
+    detail_parser = HTMLParser(detail_html)
+
+    image_urls = []
+    image_elements = detail_parser.css('img')
+
+    for image_element in image_elements:
+        image_urls.append(image_element.attributes['src'])
+
+    print('get image_urls', image_urls)
+
+    # 이미지 저장
+    title_dir = os.path.join(output_dir)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+
+    for i, image_url in enumerate(image_urls):
+        try:
+            if image_url.startswith('data:image/'):
+                # Base64 이미지 처리
+                header, encoded = image_url.split(",", 1)
+                data = base64.b64decode(encoded)
+                file_extension = header.split('/')[1].split(';')[0]
+                file_name = f"image_{i}.{file_extension}"
+                file_path = os.path.join(title_dir, file_name)
+                with open(file_path, 'wb') as f:
+                    f.write(data)
+            else:
+                # 일반 URL 이미지 처리
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+                response = requests.get(image_url, headers=headers, stream=True)
+                response.raise_for_status()
+                file_extension = image_url.split('.')[-1]
+                file_name = f"image_{i}.{file_extension}"
+                file_path = os.path.join(title_dir, file_name)
+                with open(file_path, 'wb') as f:
+                    for chunk in response.iter_content(1024):
+                        f.write(chunk)
+        except Exception as e:
+            print(f"Error saving image {image_url}: {e}")
+
+    print('lotteimall 완료중')
+    driver.quit()
+
+def ktalphashopping(url, output_dir):
+    print(f"ktalphashopping: {url}, {output_dir}")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    kt_class = ['.pd_info'] #아이디일땐 그냥 아이디값만
+    find_element_class(driver, kt_class)
+    page_source = driver.page_source
+    root = HTMLParser(page_source)
+
+    image_urls = []
+    image_elements = root.css('img')
+
+    for image_element in image_elements:
+        if 'src' in image_element.attributes:
+            src = image_element.attributes['src']
+            if src.startswith('https://shfile.'):
+                image_urls.append(src) #어거지로 저렇게 시작하는 메인이미지만 담음/ 저걸로시작하지않으면 찌꺼지이미지
+
+    print('get image_urls', image_urls)
+
+    # 이미지 저장
+    title_dir = os.path.join(output_dir)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+    save_images(image_urls, title_dir)
+
+    print('ktalphashopping 완료중')
+    driver.quit()
+
+def skstore(url, output_dir):
+    print(f"skstore: {url}, {output_dir}")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+
+    # sk_class = ['.pic1_info_detail'] #아이디일땐 그냥 아이디값만
+    # find_element_class(driver, sk_class)
+    page_source = driver.page_source
+    # root = HTMLParser(page_source)
+    start_comment = "<!--상품상세시작-->"
+    end_comment = "<!--상품상세시작 끝1-->"
+    start_idx = page_source.find(start_comment)
+    end_idx = page_source.find(end_comment)
+    if start_idx == -1 or end_idx == -1:
+        print("주석을 찾을 수 없습니다.")
+        return
+
+    detail_html = page_source[start_idx + len(start_comment):end_idx]
+    detail_parser = HTMLParser(detail_html)
+
+    # 이미지 URL 추출
+    image_urls = []
+    image_elements = detail_parser.css('img')
+    for image_element in image_elements:
+        image_urls.append(image_element.attributes['src'])
+
+    print('get image_urls', image_urls)
+
+    # 이미지 저장
+    title_dir = os.path.join(output_dir)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+    save_images(image_urls, title_dir)
+
+    print('skstore 완료중')
+    driver.quit()
+
+def ssglive(url, output_dir):
+    print(f"ssglive: {url}, {output_dir}")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+
+    ssglive_class = ['#contentsTextQs']
+    find_element_class(driver, ssglive_class)
+
+    page_source = driver.page_source
+    root = HTMLParser(page_source)
+
+    # 이미지 URL 추출
+    image_urls = []
+    image_elements = root.css('img')
+
+    exclude_classes = {'_image', 'qrcode', 'image', 'gtm_banner'} #필요없는 이미지 태그명
+
+    for image_element in image_elements:
+        image_classes = set(image_element.attributes.get('class', '').split())
+        if not image_classes.intersection(exclude_classes):
+            image_urls.append(image_element.attributes['src'])
+
+    print('get image_urls', image_urls)
+
+    # 이미지 저장
+    title_dir = os.path.join(output_dir)
+    if not os.path.exists(title_dir):
+        os.makedirs(title_dir)
+    save_images(image_urls, title_dir)
+
+    print('ssglive 완료중')
+    driver.quit()
 
 def image_crawling(info):
     if len(info) != 3:
@@ -491,6 +918,32 @@ def image_crawling(info):
     if commerce_code == 'hmall':
         hmall(img_url, save_path)
 
+    if commerce_code == 'lotteon':
+        lotteon(img_url, save_path)
+
+    if commerce_code == 'cjonstyle':
+        cjonstyle(img_url, save_path)
+
+    if commerce_code == 'emartmall':
+        emartmall(img_url, save_path)
+
+    if commerce_code == 'kakaostore':
+        kakaostore(img_url, save_path)
+
+    if commerce_code == 'oliveyoung':
+        oliveyoung(img_url, save_path)
+
+    if commerce_code == 'lotteimall': #==lottehomeshopping 둘이 같은듯, 네이버스마트스토어의 롯데홈쇼핑이면 네이버로 사용하면됨
+        lotteimall(img_url, save_path)
+
+    if commerce_code == 'ktalphashopping':
+        ktalphashopping(img_url, save_path)
+
+    if commerce_code == 'skstore':
+        skstore(img_url, save_path)
+
+    if commerce_code == 'ssglive':
+        ssglive(img_url, save_path) #그냥신세계몰과 신세계라이브쇼핑하고 다르다 #참고로 기존에 신세계쇼핑이라고 써져있는데 신세계라이브쇼핑이다
 
 # 로컬에서 실행test
 if __name__ == "__main__":
@@ -526,9 +979,47 @@ if __name__ == "__main__":
     # b = 'https://search.shopping.naver.com/catalog/5679111748' #다시다 안됨
     # c = "C:/Users/Rainbow Brain/Desktop/save"
     ##########################################
-    a = 'HmaLL'
-    b = 'https://www.hmall.com/pd/pda/itemPtc?slitmCd=2212437659&searchTerm=cj'
-    c = "C:/Users/Rainbow Brain/Desktop/hmallsave"
+    # a = 'HmaLL'
+    # b = 'https://www.hmall.com/pd/pda/itemPtc?slitmCd=2212437659&searchTerm=cj'
+    # c = "C:/Users/Rainbow Brain/Desktop/hmallsave"
+    ##########################################
+    # a = 'lotteon'
+    # b = 'https://www.lotteon.com/p/product/LO2067278567'
+    # c = "C:/Users/Rainbow Brain/Desktop/lotteon"
+    ##########################################
+    # a = 'cjonstyle'
+    # b = 'https://display.cjonstyle.com/p/item/2014282135'
+    # c = "C:/Users/Rainbow Brain/Desktop/cjonstyle"
+    ##########################################
+    # a = 'eMartMall'
+    # b = 'https://emart.ssg.com/item/itemView.ssg?itemId=1000571764822'
+    # c = "C:/Users/Rainbow Brain/Desktop/emartmall"
+    ##########################################
+    # a = 'kakaostore'
+    # # b = 'https://store.kakao.com/cheiljedang/products/218641145'
+    # b = 'https://store.kakao.com/cheiljedang/products/149592517?docId=149592517'
+    # c = "C:/Users/Rainbow Brain/Desktop/kakaostore"
+    ##########################################
+    # a = 'oliveyoung'
+    # b = 'https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=B000000184481'
+    # c = "C:/Users/Rainbow Brain/Desktop/oliveyoung"
+    ##########################################
+    # a = 'lotteimall'
+    # b = 'https://www.lotteimall.com/goods/viewGoodsDetail.lotte?goods_no=2512242592'
+    # c = "C:/Users/Rainbow Brain/Desktop/lotteimall"
+    ##########################################
+    # a = 'ktalphashopping'
+    # b = 'https://www.kshop.co.kr/display/ec/product/2751563?srwrVal=cj'
+    # c = "C:/Users/Rainbow Brain/Desktop/ktalphashopping"
+    ##########################################
+    # a = 'skstore'
+    # b = 'https://www.skstoa.com/display/goods/27843605'
+    # c = "C:/Users/Rainbow Brain/Desktop/skstore"
+    ##########################################
+    a = 'ssglive'
+    b = 'https://www.shinsegaetvshopping.com/display/detail/20056722'
+    c = "C:/Users/Rainbow Brain/Desktop/ssglive"
+    ##########################################
 
     param = [a, b, c]
 
