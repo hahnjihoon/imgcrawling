@@ -13,6 +13,8 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 from lxml import etree
 import traceback
+import pyautogui
+import pyperclip
 
 
 def find_element_class(driver, selectors):
@@ -355,7 +357,7 @@ def naver_brand(url, output_dir):
         return
 
     try:
-        # 이미지파싱도 일부분은 javascript를 사용해서 구현하는듯, 그래서 https가 아닌 이미지url이 나옴 = 그런건 저장안됨
+        # 이미지파싱도 일부분은 javascript를 사용해서 구현하는듯, 그래서 https가 아닌 url이 나옴 = 그런건 저장안됨
         image_urls = []
         image_elements = root.css(
             '#INTRODUCE > div > div._3osy73V_eD._1Hc_ju_IXp._2pWm5xPRcr > div:nth-child(1) > div:nth-child(2) > div._9F9CWn02VE > div > div > div > div img')
@@ -472,7 +474,7 @@ def ssg(url, output_dir):
         driver.quit()
         return
 
-    # ssg에만있는 상세보기버튼클릭
+    # ssg 상세보기버튼클릭
     try:
         detail_button = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, '.ctrl_collapse'))
@@ -654,7 +656,7 @@ def lotteon(url, output_dir):
     if driver is None:
         return
 
-    # lotteon에만있는 상세보기버튼클릭
+    # lotteon 상세보기버튼클릭
     try:
         detail_button = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, '.hasIcon.strokeRed.more.sizeMedium.alignRight'))
@@ -848,11 +850,6 @@ def emartmall(url, output_dir):
 
 
 def kakaostore(url, output_dir):
-    ################################################################################
-    # 버튼 클릭안하고 실행하면 메인이미지랑 하단이미지 포함되고(버튼클릭전 이미 하나의div안에 있는듯)
-    # 버튼 클릭하고 제대로 실행하면 대상컴퓨터에서 연결을 거부했다고 나옴
-    # 결론은 버튼클릭안하고 모든이미지를 다받아와야됨
-    ################################################################################
     print(f"kakaostore: {url}, {output_dir}")
 
     if not makedir(output_dir):
@@ -861,33 +858,6 @@ def kakaostore(url, output_dir):
     driver = initialize_and_open_url(url)
     if driver is None:
         return
-
-    # kakaostore 상세보기버튼클릭
-    # try:
-    #     # 클래스명이 'btn_view'인 <a> 태그를 클릭하기 위해 대기
-    #     detail_link = WebDriverWait(driver, 3).until(
-    #         EC.element_to_be_clickable((By.CSS_SELECTOR, 'a.btn_view'))
-    #     )
-    #     detail_link.click()
-    # except Exception as e:
-    #     print(f"An error occurred: {e}")
-    # finally:
-    #     driver.quit()
-    # WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
-
-    # try:
-    #     # 아니 상세부분 div 클래스명만 입력했는데 왜 메인이미지랑 하단에 쓰레기이미지까지 딸려오냐고
-    #     kakaostore_class = ['.area_detail.ng-star-inserted']  # 아이디일땐 그냥 아이디값만
-    #     # kakaostore_class = ['.contents.info_txt'] #버튼클릭할때 사용해야됨 아닐때는 위에것 사용
-    #     # 대신 모든이미지 다나옴
-    #     find_element_class(driver, kakaostore_class)
-    #     page_source = driver.page_source
-    #     root = HTMLParser(page_source)
-    # except Exception as e:
-    #     print(f"Error parsing page: {e}")
-    #     traceback.print_exc()
-    #     driver.quit()
-    #     return
 
     # 새로운방식 lxml
     kakaostore_class = ['.area_detail.ng-star-inserted']  # 아이디일땐 그냥 아이디값만
@@ -898,11 +868,6 @@ def kakaostore(url, output_dir):
 
     try:
         image_urls = []
-        # image_elements = root.css('img')
-        # for image_element in image_elements:
-        #     image_urls.append(image_element.attributes['src'])
-        # print('get image_urls', image_urls)
-
         image_elements = tree.xpath(
             '//*[@id="mArticle"]/div/div[1]/div[2]/div/div/fu-view-product-info-tab/div/div[1]/div/div[2]//img')
         for image_element in image_elements:
@@ -1390,16 +1355,122 @@ def gsshop(url, output_dir):
         return
 
     try:
-        # ID로 CSS를 찾는거라 기존함수 못돌림, 이것하나때문에 새함수 작성불가
-        gsshop_class = 'prdDetailIfr' #여기에 찾아야할 상위태그의 ID값 수정
-
-        element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, gsshop_class))
-        )
-        driver.switch_to.frame(element)
-
+        iframe_id = ['prdDetailIfr']
+        find_element_id(driver, iframe_id)
         page_source = driver.page_source
         root = HTMLParser(page_source)
+
+        proddesc_element = root.css_first('#prddesc_wrapper')
+        if proddesc_element is None:
+            print("proddesc_wrapper 요소를 찾을 수 없습니다.")
+            driver.quit()
+            return
+
+        proddesc_html = proddesc_element.html
+        root = HTMLParser(proddesc_html)
+    except Exception as e:
+        print(f"Error parsing page source: {e}")
+        traceback.print_exc()
+        driver.quit()
+        return
+
+    try:
+        collections = root.css('span')
+        for collection_index, collection in enumerate(collections): #인덱스와 함께반환하는함수
+
+            image_urls = []  #span 안의 img모음
+            image_elements = collection.css('img')
+            for image_element in image_elements:
+                image_urls.append(image_element.attributes['src'])
+
+            # 이미지를 합쳐서 저장
+            from PIL import Image
+            import requests
+            from io import BytesIO
+
+            images = []
+            for url in image_urls: #다담은거에서 1개씩 루프
+                try:
+                    response = requests.get(url)
+                    img = Image.open(BytesIO(response.content))
+                    images.append(img) #byte로 이미지를 리스트에 담아
+                except Exception as e:
+                    print(f"Error loading image from {url}: {e}")
+
+            if images:
+                # 이미지를 세로로 합치기
+                widths, heights = zip(*(i.size for i in images))
+                total_height = sum(heights)
+                max_width = max(widths)
+                # 길이 추출해서 가로세로템플릿만들어둠
+                combined_image = Image.new('RGB', (max_width, total_height))
+                y_offset = 0 #y시작위치
+                for img in images:
+                    combined_image.paste(img, (0, y_offset))
+                    y_offset += img.height
+
+                # 저장 경로 설정
+                collection_name = f"수집{collection_index}"
+                combined_image_path = os.path.join(output_dir, f"{collection_name}.jpg")
+                combined_image.save(combined_image_path)
+                print(f"합치고 저장이름 {combined_image_path}")
+                print('===========================================끝===============================================')
+            else:
+                print(f"No images found for collection {collection_index}")
+    except Exception as e:
+        print(f"Error extracting image URLs: {e}")
+        traceback.print_exc()
+        driver.quit()
+        return
+
+    print('gsshop 완료중')
+    driver.quit()
+
+
+def wemakeprice(url, output_dir):
+    print(f"wemakeprice: {url}, {output_dir}")
+
+    if not makedir(output_dir):
+        return
+
+    driver = initialize_and_open_url(url)
+    if driver is None:
+        return
+
+    # 위메프 상세보기버튼클릭
+    try:
+        detail_button = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, '.btn_sys.blueline_big_xl'))
+        )
+        detail_button.click()
+    except Exception as e:
+        print(f"Error clicking detail button: {e}")
+        traceback.print_exc()
+        driver.quit()
+        return
+
+    try:
+        WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body')))
+    except Exception as e:
+        print(f"Error waiting for body to load: {e}")
+        traceback.print_exc()
+        driver.quit()
+        return
+
+    try:
+        wemakeprice_class = ['.deal_detailimg', 'ss']
+        find_element_class(driver, wemakeprice_class)
+        # find_element_id(driver, wemakeprice_class)
+    except Exception as e:
+        print(f"Error finding iframe: {e}")
+        traceback.print_exc()
+        driver.quit()
+        return
+
+    try:
+        page_source = driver.page_source
+        root = HTMLParser(page_source)
+        # print(root.text())
     except Exception as e:
         print(f"Error parsing page source: {e}")
         traceback.print_exc()
@@ -1408,7 +1479,7 @@ def gsshop(url, output_dir):
 
     try:
         image_urls = []
-        image_elements = root.css('img')
+        image_elements = root.css('#productdetails > div > div.deal_detailimg img')
         for image_element in image_elements:
             image_urls.append(image_element.attributes['src'])
         print('get image_urls', image_urls)
@@ -1424,8 +1495,118 @@ def gsshop(url, output_dir):
         print(f"Error saving images: {e}")
         traceback.print_exc()
 
-    print('gsshop 완료중')
+    print('wemakeprice 완료중')
     driver.quit()
+
+
+def wemakeprice_detail(url, output_dir):
+    print(f"wemakeprice_detail: {url}, {output_dir}")
+
+    if not makedir(output_dir):
+        return
+
+    driver = initialize_and_open_url(url)
+    if driver is None:
+        return
+
+    detail_button = WebDriverWait(driver, 3).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, '.btn_sys.blueline_big_xl'))
+    )
+    detail_button.click()
+
+    # wm_class = ['#_productInfo > div > div > div:nth-child(3) > p:nth-child(3) > img:nth-child(1)']  # 아이디일땐 그냥 아이디값만
+    # find_element_class(driver, wm_class)
+    # parser = etree.HTMLParser()
+    # tree = etree.fromstring(page_source, parser)
+    page_source = driver.page_source
+    root = HTMLParser(page_source)
+    # print(root.text())
+    parser = etree.HTMLParser()
+    tree = etree.fromstring(page_source, parser)
+    try:
+        image_urls = []
+        image_elements = tree.xpath('//*[@id="_productInfo"]/div/div//img')
+        for image_element in image_elements:
+            src = image_element.get('src')  # get 메서드를 사용하여 src 속성을 가져옴
+            if src:
+                image_urls.append(src)
+        print('get image_urls', image_urls)
+    except Exception as e:
+        print(f"Error extracting image URLs: {e}")
+        traceback.print_exc()
+        driver.quit()
+        return
+
+    try:
+        save_images(image_urls, output_dir)
+    except Exception as e:
+        print(f"Error saving images: {e}")
+        traceback.print_exc()
+
+    print('wemakeprice_detail_class 완료중')
+    driver.quit()
+
+
+def coupang(url, output_dir):
+    print(f"coupang: {url}, {output_dir}")
+
+    if not makedir(output_dir):
+        return
+
+    # 코드내 브라우저로 접속시 쿠팡에서 url 리다이렉션시킴 => 아래같이 직접 열어야함 = rpa로 개발이 더 나음
+    try:
+        pyautogui.press('win')
+        time.sleep(1)
+        pyautogui.write('chrome')
+        pyautogui.press('enter')
+        time.sleep(3)
+
+        # URL을 클립보드에 복사하고 붙여넣기
+        pyperclip.copy(url)
+        pyautogui.hotkey('ctrl', 'l')  # 주소창으로 이동
+        pyautogui.hotkey('ctrl', 'v')  # URL 붙여넣기
+        pyautogui.press('enter')
+        time.sleep(5)  # 페이지 로딩 대기
+
+        # 버튼클릭하는 로직 추가해야됨 gui로
+
+        # 페이지 소스를 클립보드로 복사
+        pyautogui.hotkey('ctrl', 'u')  # 페이지 소스 보기
+        time.sleep(1)
+        pyautogui.hotkey('ctrl', 'a')  # 모두 선택
+        pyautogui.hotkey('ctrl', 'c')  # 클립보드로 복사
+        time.sleep(2)
+        page_source = pyperclip.paste()  # 클립보드에서 페이지 소스 가져오기
+        print(page_source)
+
+        rrr = HTMLParser(page_source)
+
+        image_urls = []
+        # image_elements = root.cssselect('#btfTab > ul.tab-contents img')
+        # for image_element in image_elements:
+        #     image_urls.append(image_element.attrib['src'])
+        image_elements = rrr.css('img')
+        for image_element in image_elements:
+            # image_urls.append(image_element.attributes['src'])
+            src = image_element.attributes['src']
+            if src:
+                if src.startswith('//'):
+                    src = 'http:' + src
+                image_urls.append(src)
+
+        print('get image_urls', image_urls)
+    except Exception as e:
+        print(f"Error during processing: {e}")
+        traceback.print_exc()
+        return
+
+    try:
+        save_images(image_urls, output_dir)
+    except Exception as e:
+        print(f"Error saving images: {e}")
+        traceback.print_exc()
+
+    print('coupang 완료중')
 
 
 def image_crawling(info):
@@ -1506,12 +1687,24 @@ def image_crawling(info):
     if commerce_code == 'gsshop':
         gsshop(img_url, save_path)
 
+    if commerce_code == 'wemakeprice':
+        # wemakeprice(img_url, save_path)
+        if 'deal' in img_url:
+            wemakeprice_detail(img_url, save_path)
+        else:
+            wemakeprice(img_url, save_path)
+
+    if commerce_code == 'wemakeprice_detail':
+        wemakeprice_detail(img_url, save_path)
+
+    if commerce_code == 'coupang':
+        coupang(img_url, save_path)
+
 
 # 로컬에서 실행test
 if __name__ == "__main__":
     ####################
     # a = 'ssg'
-    # # b = 'https://www.ssg.com/item/itemView.ssg?itemId=1000305886979&siteNo=6004&salestrNo=6005&tlidSrchWd=CJ%20%ED%96%87%EB%B0%98&srchPgNo=1&src_area=ssglist'
     # b = 'https://www.ssg.com/item/itemView.ssg?itemId=1000305886979&siteNo=6004&salestrNo=6005&tlidSrchWd=CJ%20%ED%96%87%EB%B0%98&srchPgNo=1&src_area=ssglist'
     # c = "C:/Users/Rainbow Brain/Desktop/test/ssg"
     ##########################################
@@ -1558,11 +1751,11 @@ if __name__ == "__main__":
     # a = 'eMartMall'
     # b = 'https://emart.ssg.com/item/itemView.ssg?itemId=1000571764822'
     # c = "C:/Users/Rainbow Brain/Desktop/test/emartmall"
-    ##########################################
-    a = 'kakaostore'
-    b = 'https://store.kakao.com/cheiljedang/products/218641145'
-    # b = 'https://store.kakao.com/cheiljedang/products/149592517?docId=149592517'
-    c = "C:/Users/Rainbow Brain/Desktop/test/kakaostore"
+    ###########################################
+    # a = 'kakaostore'
+    # b = 'https://store.kakao.com/cheiljedang/products/218641145'
+    # # b = 'https://store.kakao.com/cheiljedang/products/149592517?docId=149592517'
+    # c = "C:/Users/Rainbow Brain/Desktop/test/kakaostore"
     ##########################################
     # a = 'oliveyoung'
     # b = 'https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=B000000184481'
@@ -1597,9 +1790,24 @@ if __name__ == "__main__":
     # b = 'https://mart.baemin.com/goods/detail/218566'
     # c = "C:/Users/Rainbow Brain/Desktop/test/martbaemin"
     ##########################################
-    # a = 'gsshop'
+    a = 'gsshop'
     # b = 'https://www.gsshop.com/prd/prd.gs?prdid=56335104'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/gsshop"
+    b = 'https://www.gsshop.com/prd/prd.gs?prdid=1055710714'
+    # b = 'https://www.gsshop.com/prd/prd.gs?prdid=1055516839'
+    c = "C:/Users/Rainbow Brain/Desktop/test/gsshop"
+    ##########################################
+    # a = 'wemakeprice'
+    # # b = 'https://front.wemakeprice.com/deal/631932751?search_keyword=cj&_service=5&_no=10'
+    # b = 'https://front.wemakeprice.com/product/2654206860'
+    # c = "C:/Users/Rainbow Brain/Desktop/test/wemakeprice"
+    #########################################
+    # a = 'wemakeprice_detail'
+    # b = 'https://front.wemakeprice.com/deal/631932751?search_keyword=cj&_service=5&_no=10'
+    # c = "C:/Users/Rainbow Brain/Desktop/test/wemakeprice"
+    #########################################
+    # a = 'coupang'
+    # b = 'https://www.coupang.com/vp/products/5857185807?itemId=10209480501&vendorItemId=90718420145&q=cj&itemsCount=36&searchId=f800ddd69c694607999d2fd4456ff9f4&rank=3&isAddedCart='
+    # c = "C:/Users/Rainbow Brain/Desktop/test/coupang"
     ##########################################
 
     param = [a, b, c]
