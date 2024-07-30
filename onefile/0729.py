@@ -323,7 +323,6 @@ def naver_brand(url, output_dir):
     # print("Session cookies:::::::::::::::::::::::::::::::::::::::")
     # for cookie in cookies:
     #     print(cookie)
-    time.sleep(2)
 
     print('버튼클릭전')  # 화면자체를 켜서 눌러야됨. 코드상으로는 api를 호출해서 검증하는듯, 그래서 안됨
     try:
@@ -361,7 +360,7 @@ def naver_brand(url, output_dir):
         # 이미지파싱도 일부분은 javascript를 사용해서 구현하는듯, 그래서 https가 아닌 url이 나옴 = 그런건 저장안됨
         image_urls = []
         image_elements = root.css(
-            '#INTRODUCE > div > div._3osy73V_eD._1Hc_ju_IXp._2pWm5xPRcr > div:nth-child(1) > div > div > div > div > div > div img') #0730 클래스바뀜
+            '#INTRODUCE > div > div._3osy73V_eD._1Hc_ju_IXp._2pWm5xPRcr > div:nth-child(1) > div:nth-child(2) > div._9F9CWn02VE > div > div > div > div img')
 
         for image_element in image_elements:
             if 'src' in image_element.attributes:
@@ -1198,29 +1197,20 @@ def costcoonlinemall(url, output_dir):
 
     if not makedir(output_dir):
         return
+
     driver = initialize_and_open_url(url)
     if driver is None:
         return
+
     try:
         # 구조가 달라서 클래스명으로 찾아야됨, 이거하나때문에 루프돌리는 함수를 만들수없음
-        wait = WebDriverWait(driver, 2)
-        wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'ng-star-inserted')))
+        images = driver.find_elements(By.CLASS_NAME, 'ng-star-inserted')
+        src_list = [img.get_attribute('src') for img in images if img.get_attribute('src')]
 
-        page_source = driver.page_source
-        root = HTMLParser(page_source)
-        image_elements = root.css(
-            'body > main > div.page-content.container.main-wrapper > sip-product-details-page > sip-product-details > div > sip-product-image-panel > div > div > div.gallery-carousel-wrapper > div > sip-carousel > owl-carousel-o > div > div.owl-stage-outer.ng-star-inserted > owl-stage > div img')  # 0730 클래스바뀜
-        print('555555555555555555555555')
         image_urls = []
-        for rr in image_elements:
-            # print('-----------', rr)
-            if 'src' in rr.attributes:
-                src = rr.attributes['src']
-                if not src.startswith('h'):
-                    rr2 = 'https://www.costco.co.kr' + src
-                    image_urls.append(rr2)
-                else:
-                    image_urls.append(src)
+        for rr in src_list:
+            image_url = rr if rr.startswith('http') else 'https://www.costco.co.kr' + rr
+            image_urls.append(image_url)
 
         print('get image_urls', image_urls)
     except Exception as e:
@@ -1740,15 +1730,15 @@ if __name__ == "__main__":
     ####################
     # a = 'ssg'
     # b = 'https://www.ssg.com/item/itemView.ssg?itemId=1000305886979&siteNo=6004&salestrNo=6005&tlidSrchWd=CJ%20%ED%96%87%EB%B0%98&srchPgNo=1&src_area=ssglist'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/ssg"
+    # c = "C:/Users/User/Desktop/test/ssg"
     ##########################################
     # a = 'elevenst'
     # b = 'https://www.11st.co.kr/products/5395841477?&trTypeCd=PW24&trCtgrNo=585021'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/elevenst"
+    # c = "C:/Users/User/Desktop/test/elevenst"
     ##########################################
     # a = 'auction'
     # b = 'http://itempage3.auction.co.kr/DetailView.aspx?itemno=C499114079'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/auction"
+    # c = "C:/Users/User/Desktop/test/auction"
     ##########################################
     # a = sys.argv[0]
     # b = sys.argv[1]
@@ -1756,95 +1746,95 @@ if __name__ == "__main__":
     ##########################################
     # a = 'gmarket'
     # b = 'https://item.gmarket.co.kr/Item?goodscode=3499614468&buyboxtype=ad'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/gmarket"
+    # c = "C:/Users/User/Desktop/test/gmarket"
     ##########################################
     # a = 'cjthemarket'
     # b = 'https://www.cjthemarket.com/pc/prod/prodDetail?prdCd=40183168&plnId=300004&areaNum=74'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/cjthemarket"
+    # c = "C:/Users/User/Desktop/test/cjthemarket"
     ##########################################
     # 네이버는 뭘써야되는거냐 brand / search.shopping
     # a = 'naver_brand'
     # b = 'https://brand.naver.com/cheiljedang/products/6042668419' #햇반 됨
-    # c = "C:/Users/Rainbow Brain/Desktop/test/naver_brand"
+    # c = "C:/Users/User/Desktop/test/naver_brand"
     # a = 'naver_shopping'
     # b = 'https://search.shopping.naver.com/catalog/5679111748'  # 다시다 안됨
-    # c = "C:/Users/Rainbow Brain/Desktop/test/naver_shopping"
+    # c = "C:/Users/User/Desktop/test/naver_shopping"
     ##########################################
     # a = 'HmaLL'
     # b = 'https://www.hmall.com/pd/pda/itemPtc?slitmCd=2212437659&searchTerm=cj'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/hmall"
+    # c = "C:/Users/User/Desktop/test/hmall"
     ##########################################
     # a = 'lotteon'
     # b = 'https://www.lotteon.com/p/product/LO2150678217'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/lotteon"
+    # c = "C:/Users/User/Desktop/test/lotteon"
     ##########################################
     # a = 'cjonstyle'
     # b = 'https://display.cjonstyle.com/p/item/2014282135'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/cjonstyle"
+    # c = "C:/Users/User/Desktop/test/cjonstyle"
     ##########################################
     # a = 'eMartMall'
     # b = 'https://emart.ssg.com/item/itemView.ssg?itemId=1000571764822'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/emartmall"
+    # c = "C:/Users/User/Desktop/test/emartmall"
     ###########################################
     # a = 'kakaostore'
     # b = 'https://store.kakao.com/cheiljedang/products/218641145'
     # # b = 'https://store.kakao.com/cheiljedang/products/149592517?docId=149592517'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/kakaostore"
+    # c = "C:/Users/User/Desktop/test/kakaostore"
     ##########################################
     # a = 'oliveyoung'
     # b = 'https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=B000000184481'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/oliveyoung"
+    # c = "C:/Users/User/Desktop/test/oliveyoung"
     ##########################################
     # a = 'lotteimall'
     # b = 'https://www.lotteimall.com/goods/viewGoodsDetail.lotte?goods_no=2512242592'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/lotteimall"
+    # c = "C:/Users/User/Desktop/test/lotteimall"
     ##########################################
     # a = 'ktalphashopping'
     # b = 'https://www.kshop.co.kr/display/ec/product/2751563?srwrVal=cj'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/ktalphashopping"
+    # c = "C:/Users/User/Desktop/test/ktalphashopping"
     ##########################################
     # a = 'skstore'
     # b = 'https://www.skstoa.com/display/goods/27843605'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/skstore"
+    # c = "C:/Users/User/Desktop/test/skstore"
     ##########################################
     # a = 'ssglive'
     # b = 'https://www.shinsegaetvshopping.com/display/detail/20056722'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/ssglive"
+    # c = "C:/Users/User/Desktop/test/ssglive"
     ##########################################
     # a = 'costcoonlinemall'
     # b = 'https://www.costco.co.kr/Foods/Chilled-Foods/Chilled-Foods/CJ-Mijungdang-Soup-Style-Tteokbokki-4012g-x-8ea/p/662498'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/costcoonlinemall"
+    # c = "C:/Users/User/Desktop/test/costcoonlinemall"
     ##########################################
     # a = 'alieexpress'
     # b = 'https://ko.aliexpress.com/item/1005006562460420.html?spm=a2g0o.productlist.main.3.2ea53l6p3l6pN1&algo_pvid=5e733517-e786-4d12-9ff5-8fc1053711e9&algo_exp_id=5e733517-e786-4d12-9ff5-8fc1053711e9-1&pdp_npi=4%40dis%21KRW%2142320%2117774%21%21%2142320%2117774%21%402140d2dc17210930602674403e8a73%2112000037680917513%21sea%21KR%210%21AB&curPageLogUid=yHsq6pRu1o4j&utparam-url=scene%3Asearch%7Cquery_from%3A'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/alie"
+    # c = "C:/Users/User/Desktop/test/alie"
     ##########################################
     # a = 'martbaemin' #배민상회
     # # b = 'https://mart.baemin.com/goods/detail/217341'
     # b = 'https://mart.baemin.com/goods/detail/218566'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/martbaemin"
+    # c = "C:/Users/User/Desktop/test/martbaemin"
     ##########################################
-    # a = 'gsshop'
-    # b = 'https://www.gsshop.com/prd/prd.gs?prdid=56335104'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/gsshop"
+    a = 'gsshop'
+    b = 'https://www.gsshop.com/prd/prd.gs?prdid=56335104'
+    c = "C:/Users/User/Desktop/gsshop"
     ##########################################
     # a = 'wemakeprice'
     # # b = 'https://front.wemakeprice.com/deal/631932751?search_keyword=cj&_service=5&_no=10'
     # b = 'https://front.wemakeprice.com/product/2654206860'
-    # c = "C:/Users/Rainbow Brain/Desktop/test/wemakeprice"
+    # c = "C:/Users/User/Desktop/test/wemakeprice"
     #########################################
     # a = 'wemakeprice_detail'
-    # b = 'https://front.wemakeprice.com/deal/631932751?search_keyword=cj&_service=5&_no=10' #판매종료됨
-    # c = "C:/Users/Rainbow Brain/Desktop/test/wemakeprice"
+    # b = 'https://front.wemakeprice.com/deal/631932751?search_keyword=cj&_service=5&_no=10'
+    # c = "C:/Users/User/Desktop/test/wemakeprice"
     #########################################
-    a = 'coupang'
-    b = 'https://www.coupang.com/vp/products/5857185807?itemId=10209480501&vendorItemId=90718420145&q=cj&itemsCount=36&searchId=f800ddd69c694607999d2fd4456ff9f4&rank=3&isAddedCart='
-    c = "C:/Users/Rainbow Brain/Desktop/test/coupang"
+    # a = 'coupang'
+    # b = 'https://www.coupang.com/vp/products/5857185807?itemId=10209480501&vendorItemId=90718420145&q=cj&itemsCount=36&searchId=f800ddd69c694607999d2fd4456ff9f4&rank=3&isAddedCart='
+    # c = "C:/Users/User/Desktop/test/coupang"
     ##########################################
 
     param = [a, b, c]
 
     image_crawling(param)
 
-# python onefile/imgclusterandcompare.py ssg "https://www.11st.co.kr/products/5395841477?&trTypeCd=PW24&trCtgrNo=585021" "C:/Users/Rainbow Brain/Desktop/elevenImages"
+# python onefile/imgclusterandcompare.py ssg "https://www.11st.co.kr/products/5395841477?&trTypeCd=PW24&trCtgrNo=585021" "C:/Users/User/Desktop/elevenImages"
 # python onefile/imgclusterandcompare.py
