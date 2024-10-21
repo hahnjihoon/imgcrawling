@@ -3,6 +3,7 @@ import os
 from io import BytesIO
 import requests
 from PIL import Image
+from bs4 import BeautifulSoup
 from selectolax.parser import HTMLParser
 from selenium import webdriver
 from selenium.common import TimeoutException, NoSuchElementException
@@ -14,6 +15,7 @@ import time
 from lxml import etree
 import traceback
 import pyautogui
+import json
 import pyperclip
 
 
@@ -361,7 +363,7 @@ def naver_brand(url, output_dir):
         # 이미지파싱도 일부분은 javascript를 사용해서 구현하는듯, 그래서 https가 아닌 url이 나옴 = 그런건 저장안됨
         image_urls = []
         image_elements = root.css(
-            '#INTRODUCE > div > div._3osy73V_eD._1Hc_ju_IXp._2pWm5xPRcr > div:nth-child(1) > div > div > div > div > div > div img') #0730 클래스바뀜
+            '#INTRODUCE > div > div._3osy73V_eD._1Hc_ju_IXp._2pWm5xPRcr > div:nth-child(1) > div > div > div > div > div > div img')  # 0730 클래스바뀜
 
         for image_element in image_elements:
             if 'src' in image_element.attributes:
@@ -1265,7 +1267,7 @@ def alieexpress(url, output_dir):
     try:
         # 클래스명에 맞는 iframe찾아서 파싱
         # alie_class = ['.description--origin-part--SsZJoGc'] #아이디일땐 그냥 아이디값만
-        alie_class = ['.extend--content--VuIQZia'] #0729 클래스명바뀜
+        alie_class = ['.extend--content--VuIQZia']  # 0729 클래스명바뀜
         # .description--origin-part--rWy05pE
         find_element_class(driver, alie_class)
         page_source = driver.page_source
@@ -1381,80 +1383,69 @@ def gsshop(url, output_dir):
 
         proddesc_html = proddesc_element.html
         root = HTMLParser(proddesc_html)
+
+        # prddesc_wrapper 내 모든 div 요소 가져오기
+        all_divs = root.css('div')
+
+        # prddesc_wrapper의 자식 div만 필터링
+        collections = [div for div in all_divs if div.parent == proddesc_element]
+        # div.parent하면 그 부모를 찾나보다 졸라편하네 파이썬
+        # 맨앞의 div는 입력될변수, for div는 하나씩 도는 객체
+
+        # 각 div를 순서대로 처리
+        for div_index, collection in enumerate(collections, start=1):
+            image_elements = collection.css('img')
+
+            for image_index, image_element in enumerate(image_elements, start=1):
+                img_src = image_element.attributes['src']
+
+                # 이미지 개별적으로 저장
+                try:
+                    response = requests.get(img_src)
+                    img = Image.open(BytesIO(response.content))
+
+                    # 저장 경로 설정
+                    collection_name = f"수집[{div_index}]{image_index}"
+                    image_path = os.path.join(output_dir, f"{collection_name}.jpg")
+
+                    # 이미지 저장
+                    img.save(image_path)
+                    print(f"저장 이름: {image_path}")
+
+                except Exception as e:
+                    print(f"Error loading image from {img_src}: {e}")
+
     except Exception as e:
         print(f"Error parsing page source: {e}")
         traceback.print_exc()
         driver.quit()
         return
 
-    try:
-        collections = root.css('span')
-        for collection_index, collection in enumerate(collections): #인덱스와 함께반환하는함수
-
-            # image_urls = []  #span 안의 img모음
-            # image_elements = collection.css('img')
-            # for image_element in image_elements:
-            #     image_urls.append(image_element.attributes['src'])
-
-            # # 이미지를 합쳐서 저장
-            # from PIL import Image
-            # import requests
-            # from io import BytesIO
-
-            # images = []
-            # for url in image_urls: #다담은거에서 1개씩 루프
-            #     try:
-            #         response = requests.get(url)
-            #         img = Image.open(BytesIO(response.content))
-            #         images.append(img) #byte로 이미지를 리스트에 담아
-            #     except Exception as e:
-            #         print(f"Error loading image from {url}: {e}")
-
-            # if images:
-            #     # 이미지를 세로로 합치기
-            #     widths, heights = zip(*(i.size for i in images))
-            #     total_height = sum(heights)
-            #     max_width = max(widths)
-            #     # 길이 추출해서 가로세로템플릿만들어둠
-            #     combined_image = Image.new('RGB', (max_width, total_height))
-            #     y_offset = 0 #y시작위치
-            #     for img in images:
-            #         combined_image.paste(img, (0, y_offset))
-            #         y_offset += img.height
-
-            #     # 저장 경로 설정
-            #     collection_name = f"수집{collection_index}"
-            #     combined_image_path = os.path.join(output_dir, f"{collection_name}.jpg")
-            #     combined_image.save(combined_image_path)
-            #     print(f"합치고 저장이름 {combined_image_path}")
-            #     print('===========================================끝===============================================')
-            # else:
-            #     print(f"No images found for collection {collection_index}")
-
-
-            image_urls = []  # span 안의 img 모음
-            image_elements = collection.css('img')
-            for image_index, image_element in enumerate(image_elements):
-                image_urls.append(image_element.attributes['src'])
-            # 이미지를 개별적으로 저장
-                try:
-                    response = requests.get(image_element.attributes['src'])
-                    img = Image.open(BytesIO(response.content))
-                    # 저장 경로 설정
-                    collection_name = f"수집[{collection_index+1}]{image_index+1}"
-                    image_path = os.path.join(output_dir, f"{collection_name}.jpg")
-                    img.save(image_path)
-                    print(f"저장 이름: {image_path}")
-                except Exception as e:
-                    print(f"Error loading image from {image_element.attributes['src']}: {e}")
-
-
-
-    except Exception as e:
-        print(f"Error extracting image URLs: {e}")
-        traceback.print_exc()
-        driver.quit()
-        return
+    # try:
+    #     collections = root.css('> div')
+    #     for collection_index, collection in enumerate(collections): #인덱스와 함께반환하는함수
+    #
+    #         image_urls = []  # span 안의 img 모음
+    #         image_elements = collection.css('img')
+    #         for image_index, image_element in enumerate(image_elements):
+    #             image_urls.append(image_element.attributes['src'])
+    #         # 이미지를 개별적으로 저장
+    #             try:
+    #                 response = requests.get(image_element.attributes['src'])
+    #                 img = Image.open(BytesIO(response.content))
+    #                 # 저장 경로 설정
+    #                 collection_name = f"수집[{collection_index+1}]{image_index+1}"
+    #                 image_path = os.path.join(output_dir, f"{collection_name}.jpg")
+    #                 img.save(image_path)
+    #                 print(f"저장 이름: {image_path}")
+    #             except Exception as e:
+    #                 print(f"Error loading image from {image_element.attributes['src']}: {e}")
+    #
+    # except Exception as e:
+    #     print(f"Error extracting image URLs: {e}")
+    #     traceback.print_exc()
+    #     driver.quit()
+    #     return
 
     print('gsshop 완료중')
     driver.quit()
@@ -1643,6 +1634,109 @@ def coupang(url, output_dir):
     print('coupang 완료중')
 
 
+def toss(url, output_dir):
+    print(f"toss: {url}, {output_dir}")
+
+    if not makedir(output_dir):
+        return
+
+    try:
+        options = Options()
+        options.add_argument("--disable-javascript")  # 자바스크립트 비활성화
+        options.add_experimental_option("prefs", {
+            "profile.managed_default_content_settings.javascript": 2
+        })
+        options.add_argument('--headless')
+        # options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36")  # 사용자 에이전트 변경
+
+        driver = webdriver.Chrome(options=options)
+        driver.get(url)
+    except Exception as e:
+        print(f"Error initializing WebDriver: {e}")
+        traceback.print_exc()
+        return
+
+
+    try:
+        page_source = driver.page_source
+        soup = BeautifulSoup(page_source, "html.parser")  #url전체 html파싱
+
+        time.sleep(4)
+
+        script_tag = soup.find("script", {"id": "__NEXT_DATA__"}) #script id 내용
+        if not script_tag:
+            print("Script tag with id '__NEXT_DATA__' not found.")
+            return
+
+        data = json.loads(script_tag.string) #script내용 제이슨화 변수할당
+
+        #scrpit 보고 내용 파악해서 찾는 키까지 안쪽으로 들어감
+        detail_image_urls = \
+            data["props"]["pageProps"]["prefetchResult"]["dehydratedState"]["queries"][2]["state"]["data"]["product"][
+                "detailImageUrls"]
+
+        # 이미지 저장
+        save_images(detail_image_urls, output_dir)
+
+    except Exception as e:
+        print(f"Error processing the page: {e}")
+        traceback.print_exc()
+    finally:
+        driver.quit()
+
+def toss_substitude(url, output_dir):
+    print(f"toss toss_substitude: {url}, {output_dir}")
+
+    if not makedir(output_dir):
+        return
+
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+
+        # 요청 보내기
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # 응답 상태 체크
+
+        # BeautifulSoup을 사용하여 HTML 파싱
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # 스크립트 태그에서 데이터 가져오기
+        script_tag = soup.find("script", {"id": "__NEXT_DATA__"})
+        if not script_tag:
+            print("Script tag with id '__NEXT_DATA__' not found.")
+            return
+
+        # JSON 파싱
+        data = json.loads(script_tag.string)
+
+        # 데이터 구조 출력
+        print(json.dumps(data, indent=4))  # 전체 데이터 구조를 출력하여 확인
+
+        # 데이터 추출
+        queries = data["props"]["pageProps"]["prefetchResult"]["dehydratedState"]["queries"]
+
+        # queries의 내용을 확인
+        print("Queries:", queries)  # queries의 내용을 출력하여 확인
+
+        # 필요한 정보를 올바르게 가져오기 위해 수정
+        if isinstance(queries, list) and len(queries) > 2:
+            # 문자열을 JSON으로 파싱
+            product_data = json.loads(queries[2]["state"]["data"])
+            product = product_data.get("product", {})
+            detail_image_urls = product.get("detailImageUrls", [])
+
+            save_images(detail_image_urls, output_dir)
+        else:
+            print("Unexpected structure for queries.")
+
+    except Exception as e:
+        print(f"Error processing the page: {e}")
+        traceback.print_exc()
+
+
 def image_crawling(info):
     if len(info) != 3:
         print("Error: 필수 파라미터를 확인하세요")
@@ -1733,6 +1827,10 @@ def image_crawling(info):
 
     if commerce_code == 'coupang':
         coupang(img_url, save_path)
+
+    if commerce_code == 'toss':
+        # toss(img_url, save_path)
+        toss_substitude(img_url, save_path)
 
 
 # 로컬에서 실행test
@@ -1837,9 +1935,13 @@ if __name__ == "__main__":
     # b = 'https://front.wemakeprice.com/deal/631932751?search_keyword=cj&_service=5&_no=10' #판매종료됨
     # c = "C:/Users/Rainbow Brain/Desktop/test/wemakeprice"
     #########################################
-    a = 'coupang'
-    b = 'https://www.coupang.com/vp/products/5857185807?itemId=10209480501&vendorItemId=90718420145&q=cj&itemsCount=36&searchId=f800ddd69c694607999d2fd4456ff9f4&rank=3&isAddedCart='
-    c = "C:/Users/Rainbow Brain/Desktop/test/coupang"
+    # a = 'coupang'
+    # b = 'https://www.coupang.com/vp/products/5857185807?itemId=10209480501&vendorItemId=90718420145&q=cj&itemsCount=36&searchId=f800ddd69c694607999d2fd4456ff9f4&rank=3&isAddedCart='
+    # c = "C:/Users/Rainbow Brain/Desktop/test/coupang"
+    ##########################################
+    a = 'toss'
+    b = 'https://service.toss.im/shopping/p/50671'
+    c = 'C:/Users/Rainbow Brain/Desktop/test/toss'
     ##########################################
 
     param = [a, b, c]

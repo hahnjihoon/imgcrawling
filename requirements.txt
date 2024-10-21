@@ -16,3 +16,4 @@ WMI~=1.5.1
 matplotlib~=3.8.4
 pandas~=1.5.2
 PyAutoGUI~=0.9.54
+pyperclip~=1.8.2

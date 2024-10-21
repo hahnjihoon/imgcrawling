@@ -12,24 +12,32 @@ def merge(param):
 
     file_groups = {}
 
-    pattern = re.compile(r'수집\[(\d+)\]\d+')
+    pattern = re.compile(r'수집\[(\d+)\](\d+)')
 
     for file in files:
         match = pattern.match(file)
         if match:
             group_num = match.group(1)
+            file_num = int(match.group(2))  # 숫자 부분을 정수로 변환하여 정렬 가능하도록 합니다.
             if group_num not in file_groups:
                 file_groups[group_num] = []
-            file_groups[group_num].append(file)
+            file_groups[group_num].append((file_num, file))  # 파일 번호와 파일명을 함께 저장
 
     for group, files in file_groups.items():
-        images = []
-        for file in files:
-            file_path = os.path.join(location, file)
-            img = Image.open(file_path)
-            images.append(img)
+        # 파일 번호 기준으로 정렬
+        files.sort(key=lambda x: x[0])
 
-        widths, heights = zip(*(i.size for i in images))
+        images = []
+        widths = []
+        heights = []
+
+        for _, file in files:
+            file_path = os.path.join(location, file)
+            img = Image.open(file_path).convert('RGB')  # 모든 이미지를 RGB로 변환
+            images.append(img)
+            widths.append(img.width)
+            heights.append(img.height)
+
         max_width = max(widths)
         total_height = sum(heights)
 
@@ -43,8 +51,6 @@ def merge(param):
         output_file_path = os.path.join(location, f'수집{group}.jpg')
         concatenated_image.save(output_file_path)
 
-
 if __name__ == "__main__":
-    c = "C:/Users/Rainbow Brain/Desktop/test/gsshop"
+    c = "C:/Users/Rainbow Brain/Desktop/imgdir"
     merge(c)
-    # param = [c]
