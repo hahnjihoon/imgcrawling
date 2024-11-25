@@ -1737,6 +1737,75 @@ def toss_substitude(url, output_dir):
         traceback.print_exc()
 
 
+def kakao_gift(url, output_dir):
+    print(f"kakao_gift: {url}, {output_dir}")
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    driver = initialize_and_open_url(url)
+    if driver is None:
+        return
+
+    try:
+        # 페이지 로딩 대기
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#tabPanel_description"))
+        )
+
+        # 스크롤로 Lazy Loading 강제 활성화
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(3)
+
+        # Shadow DOM에서 이미지 URL 가져오기
+        js_code = """
+                let element = document.querySelector("#tabPanel_description > div > app-view-encapsuled-product-desc");
+                if (element && element.shadowRoot) {
+                    let imgElements = element.shadowRoot.querySelectorAll("div._editor_contents img");
+                    return Array.from(imgElements)
+                        .map(img => img.getAttribute("data-original-src") || img.getAttribute("src"))
+                        .filter(url => url);
+                } else {
+                    return [];
+                }
+            """
+        image_urls = driver.execute_script(js_code)
+
+        if not image_urls:
+            print("No valid images found in Shadow DOM!")
+            return
+
+        print("Found image URLs:", image_urls)
+
+        # 이미지 다운로드 및 저장
+        for idx, image_url in enumerate(image_urls):
+            try:
+                response = requests.get(image_url, stream=True)
+                response.raise_for_status()
+                image = Image.open(BytesIO(response.content))
+
+                # 투명도 제거 (RGBA → RGB) 후 JPEG로 저장
+                if image.mode in ("RGBA", "LA", "P"):
+                    image = image.convert("RGB")
+
+                # 이미지 저장 경로
+                image_path = os.path.join(output_dir, f"image_{idx + 1}.jpg")
+                image.save(image_path, "JPEG")
+                print(f"Saved image: {image_path}")
+
+            except Exception as e:
+                print(f"Error saving image {image_url}: {e}")
+
+    except Exception as e:
+        print(f"Error processing the page: {e}")
+        traceback.print_exc()
+
+    finally:
+        driver.quit()
+
+
+
+
 def image_crawling(info):
     if len(info) != 3:
         print("Error: 필수 파라미터를 확인하세요")
@@ -1831,6 +1900,10 @@ def image_crawling(info):
     if commerce_code == 'toss':
         # toss(img_url, save_path)
         toss_substitude(img_url, save_path)
+
+    if commerce_code == 'kakaogift':
+        kakao_gift(img_url, save_path)
+
 
 
 # 로컬에서 실행test
@@ -1939,9 +2012,13 @@ if __name__ == "__main__":
     # b = 'https://www.coupang.com/vp/products/5857185807?itemId=10209480501&vendorItemId=90718420145&q=cj&itemsCount=36&searchId=f800ddd69c694607999d2fd4456ff9f4&rank=3&isAddedCart='
     # c = "C:/Users/Rainbow Brain/Desktop/test/coupang"
     ##########################################
-    a = 'toss'
-    b = 'https://service.toss.im/shopping/p/50671'
-    c = 'C:/Users/Rainbow Brain/Desktop/test/toss'
+    # a = 'toss'
+    # b = 'https://service.toss.im/shopping/p/50671'
+    # c = 'C:/Users/Rainbow Brain/Desktop/test/toss'
+    ##########################################
+    a = 'kakaogift'
+    b = 'https://gift.kakao.com/product/2382934'
+    c = 'C:/Users/Rainbow Brain/Desktop/test/kakaogift'
     ##########################################
 
     param = [a, b, c]
